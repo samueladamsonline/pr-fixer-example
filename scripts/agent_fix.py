@@ -3,7 +3,7 @@ import subprocess
 import textwrap
 from pathlib import Path
 
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,10 +61,21 @@ def main() -> int:
     ).strip()
 
     client = OpenAI(api_key=api_key)
-    response = client.responses.create(
-        model=model,
-        input=prompt,
-    )
+    try:
+        response = client.responses.create(
+            model=model,
+            input=prompt,
+        )
+    except RateLimitError as exc:
+        message = str(exc)
+        if "insufficient_quota" in message:
+            print(
+                "OpenAI API quota exceeded. Enable billing or add credits on the API platform, "
+                "then re-run this workflow."
+            )
+            return 1
+        print(f"OpenAI rate limit error: {message}")
+        return 1
 
     diff = response.output_text.strip()
     if not diff.startswith("diff --git"):
