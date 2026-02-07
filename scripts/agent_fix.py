@@ -49,8 +49,8 @@ def main() -> int:
         f"""
         You are a code-fixing agent.
         You are given failing pytest output and the project files.
-        Produce a unified diff that fixes the failing tests.
-        Only output the diff. Do not include any explanations.
+        Produce a unified diff in git format (must start with "diff --git").
+        Only output the diff. Do not include any explanations or other text.
 
         Pytest output:
         {test_log}
@@ -78,8 +78,8 @@ def main() -> int:
         return 1
 
     diff = response.output_text.strip()
-    if not (diff.startswith("diff --git") or diff.startswith("*** Begin Patch")):
-        print("Model did not return a patch in a recognized format.")
+    if not diff.startswith("diff --git"):
+        print("Model did not return a git diff.")
         print(diff)
         return 1
 
@@ -87,10 +87,7 @@ def main() -> int:
     patch_path.write_text(diff, encoding="utf-8")
 
     try:
-        if diff.startswith("*** Begin Patch"):
-            subprocess.run(["apply_patch", str(patch_path)], check=True)
-        else:
-            subprocess.run(["git", "apply", str(patch_path)], check=True)
+        subprocess.run(["git", "apply", str(patch_path)], check=True)
     except subprocess.CalledProcessError:
         print("Failed to apply patch.")
         return 1
