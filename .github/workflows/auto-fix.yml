@@ -34,19 +34,23 @@ jobs:
           run_id: ${{ github.event.workflow_run.id }}
           name: pytest-output
 
-      - name: Run fixer
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-5.2-codex' }}
-        run: |
-          python scripts/agent_fix.py
+      - name: Run Codex
+        id: run_codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/fix-tests.md
+          output-file: codex-output.md
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          model: ${{ secrets.OPENAI_MODEL || 'gpt-5.2-codex' }}
 
-      - name: Upload ai-fix.patch
+      - name: Upload Codex output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ai-fix-patch
-          path: ai-fix.patch
+          name: codex-output
+          path: codex-output.md
 
       - name: Create PR
         uses: peter-evans/create-pull-request@v6
