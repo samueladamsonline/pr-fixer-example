@@ -1,0 +1,50 @@
+name: auto-fix
+
+on:
+  workflow_run:
+    workflows: ["tests"]
+    types: ["completed"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  fix:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download test log
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          run_id: ${{ github.event.workflow_run.id }}
+          name: pytest-output
+
+      - name: Run fixer
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-5.2-codex' }}
+        run: |
+          python scripts/agent_fix.py
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "Fix failing tests"
+          body: "Automated fix based on failing test output."
+          branch: "codex/auto-fix"
+          commit-message: "Fix failing tests"
