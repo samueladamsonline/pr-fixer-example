@@ -84,9 +84,10 @@ jobs:
           echo "title=$title" >> "$GITHUB_OUTPUT"
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
           {
-            echo "body<<'EOF'"
+            delimiter="PR_BODY_EOF_$(date +%s%N)"
+            echo "body<<$delimiter"
             echo "$body"
-            echo "EOF"
+            echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
       - name: Remove Codex output file
