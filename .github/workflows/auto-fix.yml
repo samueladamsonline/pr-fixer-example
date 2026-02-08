@@ -52,6 +52,43 @@ jobs:
           name: codex-output
           path: codex-output.md
 
+      - name: Generate PR metadata
+        id: pr_meta
+        run: |
+          set -euo pipefail
+
+          mapfile -t files < <(git diff --name-only)
+          file_count=${#files[@]}
+
+          if [[ "$file_count" -eq 0 ]]; then
+            title="Fix failing tests"
+            commit="Fix failing tests"
+            body="Automated fix based on failing test output."
+          else
+            if [[ "$file_count" -eq 1 ]]; then
+              title="Fix tests in ${files[0]}"
+            else
+              title="Fix tests across ${file_count} files"
+            fi
+            commit="$title"
+
+            diffstat="$(git diff --stat)"
+            body="$(printf '%s\n\n%s\n%s\n\n%s\n%s\n' \
+              "Automated fix based on failing test output." \
+              "Summary:" \
+              "$diffstat" \
+              "Files changed:" \
+              "$(printf '%s\n' "${files[@]}")")"
+          fi
+
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          {
+            echo "body<<'EOF'"
+            echo "$body"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Remove Codex output file
         if: always()
         run: rm -f codex-output.md
@@ -59,8 +96,8 @@ jobs:
       - name: Create PR
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "Fix failing tests"
-          body: "Automated fix based on failing test output."
+          title: ${{ steps.pr_meta.outputs.title }}
+          body: ${{ steps.pr_meta.outputs.body }}
           branch: "codex/auto-fix"
           base: main
-          commit-message: "Fix failing tests"
+          commit-message: ${{ steps.pr_meta.outputs.commit }}
