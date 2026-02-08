@@ -72,11 +72,20 @@ jobs:
             fi
             commit="$title"
 
-            diffstat="$(git diff --stat)"
-            body="$(printf '%s\n\n%s\n%s\n\n%s\n%s\n' \
-              "Automated fix based on failing test output." \
-              "Summary:" \
-              "$diffstat" \
+            codex_summary=""
+            if [[ -s codex-output.md ]]; then
+              codex_summary="$(cat codex-output.md)"
+            fi
+
+            body="Automated fix based on failing test output."
+            if [[ -n "$codex_summary" ]]; then
+              body="$(printf '%s\n\n%s\n%s\n' \
+                "$body" \
+                "Codex rationale:" \
+                "$codex_summary")"
+            fi
+            body="$(printf '%s\n\n%s\n%s\n' \
+              "$body" \
               "Files changed:" \
               "$(printf '%s\n' "${files[@]}")")"
           fi

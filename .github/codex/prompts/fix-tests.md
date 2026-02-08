@@ -13,4 +13,8 @@ Constraints:
 
 Output:
 - Apply your changes directly to the working tree.
-- Do not write explanations; just make the code changes.
+- After making changes, write a short Markdown response that explains:
+  - The failing test(s) and root cause.
+  - The minimal fix you applied.
+  - Any risks or edge cases to consider.
+- Keep the response concise (under 12 lines), no diffs, no stack traces.
